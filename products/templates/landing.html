@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Buy cool new product</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?version=3.52.1&features=fetch"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+    <section>
+      <div class="product">
+        <img src="https://i.imgur.com/EHyR2nP.png" alt="The cover of Stubborn Attachments" />
+        <div class="description">
+          <h3>{{ product.name }}</h3>
+          <h5>${{ product.get_display_price }}</h5>
+        </div>
+      </div>
+      <form action="/create-checkout-session" method="POST">
+        {% csrf_token %}
+        <button type="submit" id="checkout-button">Checkout</button>
+      </form>
+    </section>
+    <script type="text/javascript">
+      var stripe = Stripe("{{ STRIPE_PUBLIC_KEY }}");
+      console.log('stripe: ', stripe);
+      var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value
+      var checkoutButton = document.getElementById("checkout-button");
+      checkoutButton.addEventListener("click", function(e) {
+        e.preventDefault();
+        console.log('button clicked')
+        fetch("{% url 'create_checkout_session' product.id %}", {
+          method: "POST",
+          headers: {
+            'X-CSRFToken': csrfToken,
+          }
+        })
+        .then(function (response) {
+          const data = response.json();
+          console.log('data: ', data);
+          return data;
+        })
+        .then(function (session) {
+          console.log('session: ', session);
+          console.log('stripe: ', stripe);
+          return stripe.redirectToCheckout({ sessionId: session.id})
+        })
+        .then(function (result) {
+          console.log('result: ', result);
+          if(result.error) {
+            alert(result.error.message);
+          }
+        })
+        .catch(function (error) {
+          console.log('error: ', error);
+        })
+      })
+    </script>
+  </body>
+</html>
